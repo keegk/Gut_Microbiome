@@ -1,0 +1,251 @@
+Strict filtering on barcode 3-9 and 22 from cvn2
+
+```{r setup}
+
+#install.packages(tidyverse)
+
+library(tidyverse)
+
+
+```
+
+
+
+Load in the taxa file for all barcodes (previously filtered in assigning_taxonomy.Rmd to remove duplicate reads with distinct function. No unclassified reads or misassigned barcodes are in this file either. 19/03/2025)
+```{r}
+load("run3_culturevsnan_taxa_distinct")
+
+```
+
+
+
+```{r}
+
+cvn3_stringent_2025_clean <- run3_culturevsnan_taxa_distinct %>%
+                mutate(proportional_gap_number = gaps/alignment.length) %>%# 7.11.24 adding this as i think gaps set at less than 5 is too harsh for longer reads 
+                mutate(proportional_mismatch_number = mismatches/alignment.length) %>% # 7.11.24 adding this as i think gaps set at less than 5 is too harsh for longer reads 
+ # filter(gaps <= 5) %>% #and across the whole dataset, filter out any reads that have gaps more than 5 and
+               #filter(mismatches <= 200) %>% #mismatches more than 200
+              
+              filter(proportional_mismatch_number <= 0.1) %>%
+              filter(proportional_gap_number <= 0.1) %>% #here i am saying that there can be up to and including 10% gaps in the alignment 
+                          #l ine 428-433 is general filtering of the entire dataset
+               # filter(mismatches <= 200) %>%
+                mutate(alignment.prop = alignment.length/query.length)%>%
+                filter(alignment.prop >= 0.25) %>%
+                filter(query.length >= 500)%>%
+                filter(subject.length >= 100)#%>% #line 428-433 is general filtering of the entire dataset
+  
+
+ cvn3_stringent_June2025_clean<- cvn3_stringent_2025_clean %>% 
+               group_by (query.acc, subject.tax.ids) %>% # code from line 436-451 written with nick as the weighted approach 25.10.24
+            
+               mutate(evalue_nonzero = ifelse(evalue == 0, 1, evalue), 
+                      relative_evalue = ifelse(evalue == 0, 1, min(evalue_nonzero)/evalue_nonzero)) %>%
+              mutate(relative_alignment_length = alignment.length/max(alignment.length)) %>%
+              mutate(alignment_count = n()) %>% #taxon alignment count within a read 
+              
+              ungroup() %>%
+              group_by(query.acc) %>%
+              filter(!species.y == "NA") %>%
+              mutate(relative_count = alignment_count/n()) %>% #proportion of read alignments to a taxon
+               mutate(weight_score = relative_evalue*relative_alignment_length*(percent.identity/100)) %>%
+             filter(weight_score == max(weight_score)) %>%
+              filter(relative_count == max(relative_count)) %>%
+              slice_sample(n=1) %>%
+              ungroup()
+
+save(cvn3_stringent_June2025_clean, file = "cvn3_stringent_June2025_clean") #saving the file for quick reloading later on
+
+load("cvn3_stringent_June2025_clean")
+
+#time took = 5 mins, ran fine the first time
+```
+
+```{r}
+
+#need to add in sample name, time and location to cvn1 data plus make the prop table for use in bacterial plots:
+
+# CVN1 samples to add: barcode 2,5 and 8. In the directory (C:\Users\keegk\moredungroup\Voyager Online - Nanopore zoonotic disease AMR PhD Files\Move Files Here\SQKRBK114.24\culturing_vs_nanopore\Culture_vs_Nanopore_1) there is a file called "run1_positive_cultures" which just contain barcode 2,5 and 8 after strict filtering (made in the R notebook run1_pos_neg_cultures.Rmd from the Culture_vs_Nanopore_1 R project. ) Loading this file  here:
+ 
+load("cvn3_stringent_June2025_clean")
+
+
+##below is example code, need to fill in cvn1 data :
+  #ADD SAMPLE NAMES
+cvn3_stringent_2025_clean3 <- cvn3_stringent_June2025_clean %>%
+  
+mutate(sample_name = case_when(
+ barcode == "barcode1" ~ "GG87",
+ barcode == "barcode2" ~ "GG118", # this is FB1_200, but im renaming it just FB1, as all my sample in this chapter are from 200 mg of faeces and i dont want FB1_200 in any plots
+ barcode == "barcode3" ~ "FCG02_100ng",
+barcode == "barcode4" ~ "FCG02_100ng_2",
+barcode == "barcode5" ~ "FCG02_50ng",# this is A REPLICATE OF oRKNEY nOV 2022 fc2 sample, which was run (albeit different extraction) in cvn1
+ barcode == "barcode6" ~ "FCG02_50ng_2",#THIS  IS THE 200UL version of this sample
+ barcode == "barcode7" ~ "FB16_10^8_200",
+ barcode == "barcode8" ~ "FB16_10^8_200",# this is Fe08_200, but im renaming it just FB1, as all my sample in this chapter are from 200 mg of faeces and i dont want FB1_200 in any plots
+barcode == "barcode9" ~ "FB16_10^8_200",
+ barcode == "barcode10" ~ "FB16_2",#this is a replicate of orkney nov 2022 fbg16, ran on cvn2, i think its the same dna extract but i could be wrong
+ barcode == "barcode11" ~ "FB16_10^8_200",
+ barcode == "barcode12" ~ "FB16_10^7_200",
+barcode == "barcode13" ~ "FB16_10^6_200",
+ barcode == "barcode14" ~ "FB16_10^5_200",
+barcode == "barcode15" ~ "FB16_10^4_200",
+barcode == "barcode16" ~ "FB16_10^3_200",
+ barcode == "barcode17" ~ "FB16_10^2_200",
+ barcode == "barcode18" ~ "FB16_10^1_200",
+ barcode == "barcode19" ~ "FB16_10^8_200_2",
+barcode == "barcode20" ~ "FB16_10^5_200_2",
+barcode == "barcode21" ~ "FB16_10^4_200_2",
+barcode == "barcode22" ~ "FB16_10^2_200_2",#THIS IS THE 200UL SAMPLE
+barcode == "barcode23" ~ "HMW_POS_CTRL",
+barcode == "barcode24" ~ "LOG_POS_CTRL",
+TRUE ~ NA_character_
+ )) %>%
+  
+    #ADD lOCATION 
+mutate(location = case_when(
+ barcode == "barcode1" ~ "Iceland",
+ barcode == "barcode2" ~ "Iceland",
+ barcode == "barcode3" ~ "Orkney",
+barcode == "barcode4" ~ "Orkney",
+ barcode == "barcode5" ~ "Orkney",
+ barcode == "barcode6" ~ "Orkney",
+ barcode == "barcode7" ~ "Orkney",
+ barcode == "barcode8" ~ "Orkney",
+barcode == "barcode9" ~ "Orkney",
+ barcode == "barcode10" ~ "Orkney",
+ barcode == "barcode11" ~ "Orkney",
+ barcode == "barcode12" ~ "Orkney",
+barcode == "barcode13" ~ "Orkney",
+ barcode == "barcode14" ~ "Orkney",
+barcode == "barcode15" ~ "Orkney",
+barcode == "barcode16" ~ "Orkney",
+ barcode == "barcode17" ~ "Orkney",
+ barcode == "barcode18" ~ "Orkney",
+ barcode == "barcode19" ~ "Orkney",
+barcode == "barcode20" ~ "Orkney",
+barcode == "barcode21" ~ "Orkney",
+barcode == "barcode22" ~ "Orkney",
+barcode == "barcode23" ~ "NA",
+barcode == "barcode24" ~ "NA",
+TRUE ~ NA_character_
+ ))%>%
+
+  #ADD time
+
+mutate(time = case_when(
+ barcode == "barcode1" ~ "May_23",
+ barcode == "barcode2" ~ "May_23",
+ barcode == "barcode3" ~ "November_22",
+barcode == "barcode4" ~ "November_22",
+ barcode == "barcode5" ~ "November_22",
+ barcode == "barcode6" ~ "November_22",
+ barcode == "barcode7" ~ "November_22",
+ barcode == "barcode8" ~ "November_22",
+barcode == "barcode9" ~ "November_22",
+ barcode == "barcode10" ~ "November_22",
+ barcode == "barcode11" ~ "November_22",
+ barcode == "barcode12" ~ "November_22",
+barcode == "barcode13" ~ "November_22",
+ barcode == "barcode14" ~ "November_22",
+barcode == "barcode15" ~ "November_22",
+barcode == "barcode16" ~ "November_22",
+ barcode == "barcode17" ~ "November_22",
+ barcode == "barcode18" ~ "November_22",
+ barcode == "barcode19" ~ "November_22",
+barcode == "barcode20" ~ "November_22",
+barcode == "barcode21" ~ "November_22",
+barcode == "barcode22" ~ "November_22",
+barcode == "barcode23" ~ "NA",
+barcode == "barcode24" ~ "NA",
+TRUE ~ NA_character_
+ )) %>%
+  
+    #ADD RUN NAME
+
+mutate(run = case_when(
+ barcode == "barcode1" ~ "cvn3",
+ barcode == "barcode2" ~ "cvn3",
+ barcode == "barcode3" ~ "cvn3",
+barcode == "barcode4" ~ "cvn3",
+ barcode == "barcode5" ~ "cvn3",
+ barcode == "barcode6" ~ "cvn3",
+ barcode == "barcode7" ~ "cvn3",
+ barcode == "barcode8" ~ "cvn3",
+barcode == "barcode9" ~ "cvn3",
+ barcode == "barcode10" ~ "cvn3",
+ barcode == "barcode11" ~ "cvn3",
+ barcode == "barcode12" ~ "cvn3",
+barcode == "barcode13" ~ "cvn3",
+ barcode == "barcode14" ~ "cvn3",
+barcode == "barcode15" ~ "cvn3",
+barcode == "barcode16" ~ "cvn3",
+ barcode == "barcode17" ~ "cvn3",
+ barcode == "barcode18" ~ "cvn3",
+ barcode == "barcode19" ~ "cvn3",
+barcode == "barcode20" ~ "cvn3",
+barcode == "barcode21" ~ "cvn3",
+barcode == "barcode22" ~ "cvn3",
+barcode == "barcode23" ~ "cvn3",
+barcode == "barcode24" ~ "cvn3",
+TRUE ~ NA_character_
+ ))
+
+save(cvn3_stringent_2025_clean3, file = "cvn3_stringent_2025_clean3") #saving the file for quick reloading later on
+load("cvn3_stringent_2025_clean3")
+   # group_by(phylum, sample_name) %>%
+
+cvn3_stringent_2025_clean4 <-   cvn3_stringent_2025_clean3 %>%
+  filter(barcode %in% c("barcode1","barcode2","barcode10")) # %>% #removing the controls and spiked campy samples
+  save(cvn3_stringent_2025_clean4, file = "cvn3_stringent_2025_clean4") #saving the file for quick reloading later on
+load("cvn3_stringent_2025_clean4")
+
+ stringent_2025_cvn3_prop  <- cvn3_stringent_2025_clean4  %>% 
+  filter(superkingdom == "Bacteria") %>%
+  group_by(sample_name, phylum) %>%
+  distinct(subject.tax.ids) %>% #adding this 26.4.24 to remove multiple hits to the same taxa, inflating the numbers
+  summarise(phylum_count = n()) %>%
+  mutate(prop =prop.table(phylum_count)) %>%
+  ungroup() %>%
+  arrange(desc(prop)) %>%
+  mutate(phylum = replace_na(phylum, "Unassigned")) %>%
+  mutate(phylum = factor(phylum, levels = unique(phylum)))
+
+save(stringent_2025_cvn3_prop, file = "stringent_2025_cvn3_prop") #saving the file for quick reloading later on
+
+##Genus prop 
+  
+ stringent_2025_cvn3_prop_genus  <- cvn3_stringent_2025_clean3 %>% 
+  filter(superkingdom == "Bacteria") %>%
+  group_by(sample_name, genus) %>%
+  distinct(subject.tax.ids) %>% #adding this 26.4.24 to remove multiple hits to the same taxa, inflating the numbers
+  summarise(genus_count = n()) %>%
+  mutate(prop =prop.table(genus_count)) %>%
+  ungroup() %>%
+  arrange(desc(prop)) %>%
+  mutate(genus = replace_na(genus, "Unassigned")) %>%
+  mutate(genus = factor(genus, levels = unique(genus)))
+
+save(stringent_2025_cvn3_prop_genus, file = "stringent_2025_cvn3_prop_genus") #saving the file for quick reloading later on
+
+##family prop 
+  
+ stringent_2025_cvn3_prop_family  <-cvn3_stringent_2025_clean3 %>% 
+  filter(superkingdom == "Bacteria") %>%
+  group_by(sample_name, family) %>%
+  distinct(subject.tax.ids) %>% #adding this 26.4.24 to remove multiple hits to the same taxa, inflating the numbers
+  summarise(family_count = n()) %>%
+  mutate(prop =prop.table(family_count)) %>%
+  ungroup() %>%
+  arrange(desc(prop)) %>%
+  mutate(family = replace_na(family, "Unassigned")) %>%
+  mutate(family = factor(family, levels = unique(family)))
+
+save(stringent_2025_cvn3_prop_family , file = "stringent_2025_cvn3_prop_family") #saving the file for quick reloading later on
+
+
+```
+
+
+

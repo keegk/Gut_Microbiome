@@ -1,0 +1,221 @@
+---
+title: "tet positive e.coli"
+output: html_notebook
+---
+
+#sample that were culture positive for tet e.coli were:
+
+Nov 22:
+B04
+D20
+E16
+FB16
+FE8
+
+April 2023:
+BG15
+
+jUNE 2023:
+WG06
+WG08
+WG14
+WG19
+
+Lets check blastn on CARD for these samples:
+
+```{r}
+load("gm_blastn_CARD_2025_taxa_mge")
+
+samples_HITTING_E_COLI <- gm_blastn_CARD_2025_taxa_mge %>%
+                        filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                       # filter(str_detect(Drug.Class, "tetracycline")) %>%
+                        summarise(sample_name_count = n()) #wg14, b04, e16 only
+
+samples_hitting_tet_e.coli <- gm_blastn_CARD_2025_taxa_mge %>%
+                        filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                        filter(str_detect(Drug.Class, "tetracycline")) %>%
+ summarise(num_mechanisms = n_distinct(Resistance.Mechanism)) %>%
+ ungroup()
+#b04, e16 only
+
+```
+
+Lets check blastx on CARD for these samples:
+
+```{r}
+load("gm_blastx_CARD_2025_taxa_mge")
+
+samples_HITTING_E_COLI <- gm_blastx_CARD_2025_taxa_mge %>%
+                        filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                       # filter(str_detect(Drug.Class, "tetracycline")) %>%
+                        summarise(sample_name_count = n()) #b04, e16 only
+
+samples_hitting_tet_e.coli <- gm_blastn_CARD_2025_taxa_mge %>%
+                        filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                        filter(str_detect(Drug.Class, "tetracycline")) %>%
+                        summarise(sample_name_count = n()) #b04, e16 only
+
+```
+
+Lets check rgi on CARD for these samples:
+
+```{r}
+load("gm_RGI_ph_hits_taxa_cleaned") 
+
+samples_HITTING_E_COLI <- gm_RGI_ph_hits_taxa_cleaned %>%
+                        filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(Model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                       # filter(str_detect(Drug.Class, "tetracycline")) %>%
+                        summarise(sample_name_count = n()) #b04, e16 AND WG14 only
+
+samples_hitting_tet_e.coli_rgi <- gm_RGI_ph_hits_taxa_cleaned %>%
+                        filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(Model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                        filter(str_detect(Drug.Class, "tetracycline")) %>%
+                        summarise(sample_name_count = n()) #b04, e16 AND WG14 only
+
+
+samples_hitting_tet_e.coli_rgi <- gm_RGI_ph_hits_taxa_cleaned %>%
+                        filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(Model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                        filter(str_detect(Drug.Class, "tetracycline")) %>%
+                        summarise(sample_name_count = n())
+
+samples_hitting_tet_e.coli <- gm_RGI_ph_hits_taxa_cleaned %>%
+                        filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(Model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                        filter(str_detect(Drug.Class, "tetracycline"))
+
+#PERFECT HITS BY SAMPLE:
+samples_hitting_tet_e.coli <- gm_RGI_ph_hits_taxa_cleaned %>%
+                        filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(Model_type == "protein homolog model") %>%
+  filter(str_detect(Drug.Class, "tetracycline")) %>%
+                        filter(Cut_Off == "Strict") %>%
+                        group_by(sample_name) %>%
+                        
+     summarise(sample_name_count = n())
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#WHAT ABOUT ANY OTHER SAMPLE THAT MIGHT BE TET RESISTANT - BLASTN:
+
+```{r}
+#load("gm_blastn_CARD_2025_taxa_mge")
+
+samples_HITTING_E_COLI <- gm_blastn_CARD_2025_taxa_mge %>%
+                       # filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                       # filter(str_detect(Drug.Class, "tetracycline")) %>%
+                        summarise(sample_name_count = n()) #wg14, b04, e16 only
+
+samples_hitting_tet_e.coli <- gm_blastn_CARD_2025_taxa_mge %>%
+                       # filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                        filter(str_detect(Drug.Class, "tetracycline")) %>%
+                        summarise(sample_name_count = n()) ##b04, e16, wg14, additional = fb1, fc2,gg149 additional samples fb1 and cg2 were not cultured for tet so no corresponding data. gg149 was neg for tet e.coli when cultured
+
+```
+
+```{r}
+load("gm_blastx_CARD_2025_taxa_mge")
+
+samples_HITTING_E_COLI <- gm_blastx_CARD_2025_taxa_mge %>%
+                       # filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                       # filter(str_detect(Drug.Class, "tetracycline")) %>%
+                        summarise(sample_name_count = n()) #b04, e16 only
+
+samples_hitting_tet_e.coli <- gm_blastn_CARD_2025_taxa_mge %>%
+                       # filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                        filter(str_detect(Drug.Class, "tetracycline")) %>%
+                        summarise(sample_name_count = n()) #b04, e16, wg14, additional = fb1, fc2,gg149, additional samples fb1 and cg2 were not cultured for tet so no corresponding data. gg149 was neg for tet e.coli when cultured
+
+```
+
+```{r}
+load("gm_RGI_ph_hits_taxa_cleaned") 
+
+samples_HITTING_E_COLI <- gm_RGI_ph_hits_taxa_cleaned %>%
+                        #filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(Model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                       # filter(str_detect(Drug.Class, "tetracycline")) %>%
+                        summarise(sample_name_count = n()) #b04, e16 AND WG14 only
+
+samples_hitting_tet_e.coli <- gm_RGI_ph_hits_taxa_cleaned %>%
+                       # filter(sample_name == c("B04","D20","E16","FB16","FE8","BG15", "WG06", "WG08", "WG14", "WG19")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(Model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                        filter(str_detect(Drug.Class, "tetracycline")) %>%
+                        summarise(sample_name_count = n())#b04, e16, wg14, additional = fb1, fc2,gg149, additional samples fb1 and cg2 were not cultured for tet so no corresponding data. gg149 was neg for tet e.coli when cultured
+
+
+##gg149 only, what kind of resistance is it:
+
+samples_hitting_tet_e.coli <- gm_RGI_ph_hits_taxa_cleaned %>%
+                        filter(sample_name == c("GG149")) %>%
+                        filter(species.x == "Escherichia coli") %>%
+                        filter(Model_type == "protein homolog model") %>%
+                        group_by(sample_name) %>%
+                        filter(str_detect(Drug.Class, "tetracycline"))
+
+
+```

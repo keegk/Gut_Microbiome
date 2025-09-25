@@ -1,0 +1,1266 @@
+---
+title: "Other zoonotic pathogens"
+output: html_notebook
+---
+
+```{r setup}
+library(tidyverse)
+library(stringr)
+library("RColorBrewer") 
+library("ggplot2")
+```
+
+
+#also loading in 16s dataset to search for these pathogens too:
+```{r}
+load("nan_16s_combined_final2") #this has counts of every samplels phyla to species hit across both sequencing methods and also contains info like sample time and location
+
+```
+
+##lets look at pseduomonas in both:
+
+```{r}
+
+##illumina campy
+pseudo_16s_counts <- nan_16s_combined_final2 %>%
+                      
+                      filter(sequencing == "Illumina") %>%
+                      filter(Genus == "Pseudomonas") %>%
+                  
+ group_by(Species,  location) %>%
+ summarise(total_count = sum(count, na.rm = TRUE)) %>%
+ ungroup()
+
+##nanopore campy
+
+pseudo__nan_counts <- nan_16s_combined_final2  %>%
+                      
+                      filter(sequencing == "Nanopore") %>%
+                      filter(Genus == "Pseudomonas") %>%
+                  
+ group_by(Species, location) %>%
+ summarise(total_count = sum(count, na.rm = TRUE)) %>%
+ ungroup()
+
+
+##illumina campy jejuni
+campy_jejuni_16s_counts <- nan_16s_combined_final2  %>%
+                      
+                      filter(sequencing == "Illumina") %>%
+                      filter(Genus == "Campylobacter") %>%
+                  filter(Species == "coli/jejuni") %>%
+ group_by(sample_name, location) %>%
+ summarise(total_count = sum(count, na.rm = TRUE)) %>%
+ ungroup()
+
+##nanopore campy jejuni
+
+campy_jejuni_nan_counts <- nan_16s_combined_final2 %>%
+                      
+                      filter(sequencing == "Nanopore") %>%
+                      filter(Species == "Campylobacter jejuni") %>%
+                  
+ group_by(sample_name, location) %>%
+ summarise(total_count = sum(count, na.rm = TRUE)) %>%
+ ungroup()
+
+
+```
+
+
+
+
+#DOUBLE CHECKING SALMONELLA COUNTS
+
+```{r}
+#nanopore
+salmonella_nan <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus == "Salmonella") #3223 hits
+
+salmonella_nan_prop <- salmonella_nan %>%
+                    group_by(sample_name, Species) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+
+salmonella_nan_spp_prop <- salmonella_nan %>%
+                    group_by(Species) %>%
+                     summarise(Species_count = n()) %>%
+                      ungroup() %>%
+                      arrange(desc(Species_count)) #be careful these include positive controls which have s. typhi
+#16s:
+salmonella_16s <- nan_16s_combined_final2%>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Salmonella") #1 hits
+
+
+
+
+```
+
+
+#escherichia COUNTS
+
+```{r}
+
+##nanopore
+
+Escherichia_nan <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus == "Escherichia") #3223 hits
+
+Escherichia_nan_prop <- Escherichia_nan %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#16s:
+eschericia16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Escherichia/Shigella") #90 hits
+
+
+##0157 
+
+##nanopore
+
+Escherichia_0157_nan <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+   filter(Genus == "Escherichia") %>%
+                          filter(str_detect(Species, "O157"))
+                          
+
+#16s:
+eschericia_0157_16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Escherichia/Shigella") %>%
+ filter(str_detect(Species, "O157"))
+
+#o103?
+
+Escherichia_0103_nan <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+   filter(Genus == "Escherichia") %>%
+                          filter(str_detect(Species, "O103"))
+                          
+
+#16s:
+eschericia_0103_16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Escherichia/Shigella") %>%
+ filter(str_detect(Species, "O103"))
+
+```
+
+
+Aliarcobacter butzleri (formerly Arcobacter butzleri, formerly Campylobacter butzleri) - no hits
+
+```{r}
+#nanopore
+Aliarcobacter_butzleri_nan <- nan_16s_combined_final2  %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Species == "Aliarcobacter butzleri") #no hits
+
+#checking former names:
+
+Arcobacter_butzleri_nan  <-  nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Species == "Arcobacter butzleri") #no hits
+
+Campylobacter_butzleri_nan  <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Species == "Campylobacter butzleri") #no hits
+
+#check the Genus level for Aliarcobacter
+
+Aliarcobacter_Genus_nan  <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus == "Aliarcobacter") #207 obs, none of them butzleri
+
+
+
+#16s
+
+Aliarcobacter_butzleri_16s <- nan_16s_combined_final2  %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Species == "Aliarcobacter butzleri") #no hits
+
+#checking former names:
+
+Arcobacter_butzleri_16s  <-  nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Species == "Arcobacter butzleri") #no hits
+
+Campylobacter_butzleri_16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Species == "Campylobacter butzleri") #no hits
+
+#check the Genus level for Aliarcobacter
+
+Aliarcobacter_Genus_16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Aliarcobacter") #207 obs, none of them butzleri
+
+
+```
+
+
+Anaplasma phagocytophilum - no hits
+
+
+```{r}
+##nan
+Anaplasma_phagocytophilum_nan <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Species == "Anaplasma phagocytophilum") #no hits
+
+#checking Genus
+
+Anaplasma_Genus_nan  <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus == "Anaplasma") #no hits
+
+#16s
+
+Anaplasma_phagocytophilum_16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Species == "Anaplasma phagocytophilum") #no hits
+
+#checking Genus
+
+Anaplasma_Genus_16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Anaplasma") #no hits
+
+```
+
+ Bacillus anthracis/cereus - handful of dubious hits
+ 
+```{r}
+Bacillus <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus == "Bacillus") #1 hits, both ~500bp long but one hits to pos hmw ctrl which definitely doesnt have anthrax in it
+
+Bacillus_anthracis <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Species == "Bacillus anthracis") #1 hits, both ~500bp long but one hits to pos hmw ctrl which definitely doesnt have anthrax in it
+
+Bacillus_cereus <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Species == "Bacillus cereus") #4 hits, most in the hmw control
+
+Bacillus_prop <- Bacillus%>%
+                    group_by(sample_name, Genus) %>%
+  filter(sequencing == "Nanopore") %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+##16s
+
+Bacillus_16s  <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Bacillus") #1 hits, both ~500bp long but one hits to pos hmw ctrl which definitely doesnt have anthrax in it
+
+Bacillus_anthracis_16s  <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Species == "Bacillus anthracis") #1 hits, both ~500bp long but one hits to pos hmw ctrl which definitely doesnt have anthrax in it
+
+Bacillus_cereus_16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Species == "Bacillus cereus") #4 hits, most in the hmw control
+
+Bacillus_prop_16s <- Bacillus%>%
+                    group_by(sample_name, Genus) %>%
+  filter(sequencing == "Illumina") %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+
+```
+
+Borrelia burgdorferi - no hits
+
+```{r}
+#nan
+Borrelia_burgdorferi <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Species == "Borrelia burgdorferi") #0 hits
+
+Borrelia <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus == "Borrelia") #0 hits
+
+#16s
+
+Borrelia_burgdorferi_16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Species == "Borrelia burgdorferi") #0 hits
+
+Borrelia_16s  <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Borrelia") #0 hits
+
+
+```
+
+ Brucella - 2 dubious hits
+ 
+```{r}
+#nan
+brucella <- nan_16s_combined_final2 %>%
+   filter(sequencing == "Nanopore") %>%
+                          filter(Genus == "Brucella") #2 hits, sp.  pituitosa and anthropi
+
+brucella_prop <- brucella %>%
+   filter(sequencing == "Nanopore") %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+
+
+nrow(brucella)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(brucella_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(brucella_prop$sample_name_count)
+
+#16s
+
+brucella_16s<- nan_16s_combined_final2 %>%
+   filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Brucella") #2 hits, sp.  pituitosa and anthropi
+
+brucella_prop_16s <- brucella %>%
+   filter(sequencing == "Illumina") %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+
+
+nrow(brucella)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(brucella_prop_16s)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(brucella_prop$sample_name_count)
+
+```
+
+Chlamydia - no hits
+
+```{r}
+
+Chlamydia <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus == "Chlamydia") #0 hits
+
+#16s
+
+Chlamydia_16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Chlamydia") #0 hits
+```
+
+ Clostridium - over 3,000 hits to clostrifium spp
+ 
+```{r}
+
+Clostridium <- nan_16s_combined_final2 %>%
+    filter(sequencing == "Nanopore") %>%
+                          filter(Genus == "Clostridium") #3223 hits
+
+clostridium_prop <- Clostridium %>%
+    filter(sequencing == "Nanopore") %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+
+clostridium_spp_prop <- Clostridium %>%
+    filter(sequencing == "Nanopore") %>%
+                    group_by(Species) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+
+#get the tootal number of hits in the entire dataset
+
+nrow(Clostridium)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(clostridium_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(clostridium_prop$sample_name_count)
+
+
+#species of interest
+
+Clostridium_perfringens <-  nan_16s_combined_final2 %>%
+    filter(sequencing == "Nanopore") %>%
+                          filter(Species == "Clostridium perfringens") #74 hitsdata:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAAbElEQVR4Xs2RQQrAMAgEfZgf7W9LAguybljJpR3wEse5JOL3ZObDb4x1loDhHbBOFU6i2Ddnw2KNiXcdAXygJlwE8OFVBHDgKrLgSInN4WMe9iXiqIVsTMjH7z/GhNTEibOxQswcYIWYOR/zAjBJfiXh3jZ6AAAAAElFTkSuQmCC
+
+Clostridium_perfringens_prop <- Clostridium_perfringens %>%
+    filter(sequencing == "Nanopore") %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Clostridium_perfringens)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Clostridium_perfringens_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Clostridium_perfringens_prop$sample_name_count)
+
+
+Clostridium_botulinum <-  nan_16s_combined_final2 %>%
+    filter(sequencing == "Nanopore") %>%
+                          filter(Species == "Clostridium botulinum") #44 hits
+
+Clostridium_botulinum_prop <- Clostridium_botulinum %>%
+    filter(sequencing == "Nanopore") %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Clostridium_botulinum)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Clostridium_botulinum_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Clostridium_botulinum_prop$sample_name_count)
+
+
+Clostridium_tetani<-  nan_16s_combined_final2 %>%
+                          filter(Species == "Clostridium tetani") #1 hits
+
+
+Clostridium_tetani_prop <- Clostridium_tetani%>%
+    filter(sequencing == "Nanopore") %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Clostridium_tetani)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Clostridium_tetani_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Clostridium_tetani_prop$sample_name_count)
+
+
+
+#16s:
+clostridium_16s <- nan_16s_combined_final2%>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Clostridium") #3 orkney june samples 
+
+
+
+
+```
+ 
+ Cryptosporidium parvum - no hits
+
+```{r}
+ Cryptosporidium_parvum <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Species == "Cryptosporidium parvum") #0 hits
+
+ Cryptosporidium <- nan_16s_combined_final2 %>%
+                          filter(Genus== "Cryptosporidium") #13 hits to Cryptosporidium struthionis
+ 
+Cryptosporidium_prop <- Cryptosporidium %>%
+  filter(sequencing == "Nanopore") %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Cryptosporidium)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Cryptosporidium_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Cryptosporidium_prop$sample_name_count)
+ # checking subject tax id 
+
+ Cryptosporidium_parvum_taxID <- nan_16s_combined_final2 %>%
+                          filter(subject.tax.ids== "5807") #0 hits
+
+ 
+ 
+ cryptospiridium_struthionis <-  nan_16s_combined_final2 %>%
+   filter(sequencing == "Nanopore") %>%
+                          filter(Species == "Cryptosporidium struthionis") #13 hits to Cryptosporidium struthionis
+ 
+cryptospiridium_struthionis_prop <- cryptospiridium_struthionis  %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(cryptospiridium_struthionis)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(cryptospiridium_struthionis_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(cryptospiridium_struthionis_prop$sample_name_count)
+ # checking subject tax id 
+
+
+```
+
+Cronobacter - over 40 hits
+
+```{r}
+
+
+
+Cronobacter <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Cronobacter") #44 hits
+
+
+Cronobacter_prop <- Cronobacter  %>%
+  filter(sequencing == "Nanopore") %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Cronobacter)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Cronobacter_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Cronobacter_prop$sample_name_count)
+ # checking subject tax id 							
+
+
+
+#pathogen of interest
+
+Cronobacter_sakazakii <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Species == "Cronobacter sakazakii") #35 hits
+
+
+
+Cronobacter_sakazakii_prop <- Cronobacter_sakazakii  %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Cronobacter_sakazakii)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Cronobacter_sakazakii_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Cronobacter_sakazakii_prop$sample_name_count)
+ # checking subject tax id 							
+
+
+#16s:
+cronobacter_16s <-  nan_16s_combined_final2%>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Cronobacter") #0 hits
+
+
+
+
+```
+ 
+Enterococcus - over 120,000 reports
+
+```{r}
+
+
+
+Enterococcus <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Enterococcus") #122,532 hits
+
+#the eu one health report didnt mention a specific spp, just non pathogenic enterococcus
+
+Enterococcus_prop <- Enterococcus  %>%
+
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Enterococcus)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Enterococcus_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Enterococcus_prop$sample_name_count)
+ # checking subject tax id 							
+
+
+#16s:
+enterrococcus_16s <- nan_16s_combined_final2%>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Enterococcus") #3 orkney june samples 
+
+enterrococcus_16s_prop <- enterrococcus_16s %>%
+                    group_by(sample_name) %>%
+                     summarise(total_count = sum(count, na.rm = TRUE), .groups = "drop") %>%
+                    filter(total_count != 0)
+                     
+
+```
+
+Echinococcus
+
+```{r}
+
+
+#nan
+Echinococcus <- nan_16s_combined_final2 %>%
+    filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Echinococcus") #0 hits
+#16s
+
+Echinococcus_16s <- nan_16s_combined_final2 %>%
+    filter(sequencing == "Illumina") %>%
+                          filter(Genus== "Echinococcus") 
+
+```
+
+Francisella tularensis - no hits
+
+```{r}
+
+#nan
+Francisella_tularensis <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Species== "Francisella tularensis") #0 hits
+
+Francisella <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Francisella") #0 hits
+
+#16s
+
+Francisella_tularensis_16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Species== "Francisella tularensis") #0 hits
+
+Francisella_16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus== "Francisella") #0 hits
+```
+
+
+Legionella pneumophila
+
+```{r}
+
+#nan
+Legionella_pneumophila<- nan_16s_combined_final2 %>%
+   filter(sequencing == "Nanopore") %>%
+                          filter(Species== "Legionella pneumophila") #0 hits
+
+Legionella <- nan_16s_combined_final2 %>%
+   filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Legionella") #0 hits
+#
+#16s
+Legionella_pneumophila_16s<- nan_16s_combined_final2 %>%
+   filter(sequencing == "Illumina") %>%
+                          filter(Species== "Legionella pneumophila") #0 hits
+
+Legionella_16s <- nan_16s_combined_final2 %>%
+   filter(sequencing == "Illumina") %>%
+                          filter(Genus== "Legionella") #0 hits
+
+```
+
+listeria - over 400 hits
+
+```{r}
+
+
+Listeria_monocytogenes<- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Species== "Listeria monocytogenes") #400 hits
+
+Listeria_monocytogenes_prop <- Listeria_monocytogenes  %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Listeria_monocytogenes)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Listeria_monocytogenes_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Listeria_monocytogenes_prop$sample_name_count)
+ # checking subject tax id 	
+
+
+Listeria <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Listeria") #454 hits
+
+Listeria_prop <- Listeria  %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Listeria)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Listeria_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Listeria_prop$sample_name_count)
+ # checking subject tax id 	
+
+
+
+#16s:
+Listeria_16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Listeria") 
+
+Listeria_16s_prop <- Listeria_16s %>%
+                    group_by(sample_name) %>%
+                     summarise(total_count = sum(count, na.rm = TRUE), .groups = "drop") %>%
+                    filter(total_count != 0) #only the positive control
+
+```
+
+
+Leptospira
+
+```{r}
+
+
+
+
+
+Leptospira <- nan_16s_combined_final2 %>%
+   filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Leptospira") #0 hits
+
+#16s
+
+Leptospira_16s <- nan_16s_combined_final2 %>%
+   filter(sequencing == "Illumina") %>%
+                          filter(Genus== "Leptospira") #0 hits
+```
+
+ Klebsiella 
+ 
+```{r}
+
+
+
+
+Klebsiella <- nan_16s_combined_final2 %>%
+   filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Klebsiella") #1097 hits
+Klebsiella_prop <- Klebsiella  %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Klebsiella)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Klebsiella_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Klebsiella_prop$sample_name_count)
+ # checking subject tax id 	
+#pathogen of interest
+
+Klebsiella_pneumoniae  <- nan_16s_combined_final2 %>%
+   filter(sequencing == "Nanopore") %>%
+                          filter(Species== "Klebsiella pneumoniae") #482 hits
+
+Klebsiella_pneumoniae_prop <- Klebsiella_pneumoniae  %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Klebsiella_pneumoniae)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Klebsiella_pneumoniae_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Klebsiella_pneumoniae_prop$sample_name_count)
+ # checking subject tax id 	
+#pathogen of interest
+
+
+#16s:
+Klebsiella_16s <- nan_16s_combined_final2%>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Klebsiella") 
+
+Klebsiella_16s_prop <- Klebsiella_16s %>%
+                    group_by(sample_name) %>%
+                     summarise(total_count = sum(count, na.rm = TRUE), .groups = "drop") %>%
+                    filter(total_count != 0) #0 hits
+
+```
+
+
+
+
+Mycobacterium tuberculosis/bovis - no hits
+ 
+```{r}
+
+
+
+
+Mycobacterium  <- nan_16s_combined_final2 %>%
+   filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Mycobacterium") #0 hits
+
+#pathogen of interest
+
+Mycobacterium_tuberculosis <- nan_16s_combined_final2 %>%
+   filter(sequencing == "Nanopore") %>%
+                          filter(Species== "Mycobacterium tuberculosis") #0 hits
+
+Mycobacterium_bovi <- nan_16s_combined_final2 %>%
+   filter(sequencing == "Nanopore") %>%
+                          filter(Species== "Mycobacterium bovi") #0 hits
+
+
+#16s
+Mycobacterium_16s   <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus== "Mycobacterium") #0 hits
+
+#pathogen of interest
+
+Mycobacterium_tuberculosis_16s <- nan_16s_combined_final2 %>%
+   filter(sequencing == "Illumina") %>%
+                          filter(Species== "Mycobacterium tuberculosis") #0 hits
+
+Mycobacterium_bovi_16s  <- nan_16s_combined_final2 %>%
+   filter(sequencing == "Illumina") %>%
+                          filter(Species== "Mycobacterium bovi") #0 hits
+
+
+
+```
+
+
+Proteus
+
+```{r}
+
+
+Proteus  <- nan_16s_combined_final2 %>%
+   filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Proteus") #499 hits
+
+#no species specified in eu one health report
+
+Proteus_prop <- Proteus  %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Proteus)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Proteus_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Proteus_prop$sample_name_count)
+ # checking subject tax id 	
+#pathogen of interest
+
+
+#16s:
+Proteus_16s <- nan_16s_combined_final2%>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Proteus") 
+
+Proteus_16s_prop <- Proteus_16s %>%
+                    group_by(sample_name) %>%
+                     summarise(total_count = sum(count, na.rm = TRUE), .groups = "drop") %>%
+                    filter(total_count != 0) #0 hits
+
+```
+
+
+
+
+
+shigella
+
+```{r}
+
+
+
+
+Shigella <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Shigella") #621 hits
+Shigella_prop <- Shigella  %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Shigella)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Shigella_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Shigella_prop$sample_name_count)
+ # checking subject tax id 	
+#pathogen of interest
+#pathogen of interest
+
+Shigella_flexneri <- nan_16s_combined_final2 %>%
+                          filter(Species== "Shigella flexneri") #274 hits
+
+Shigella_flexneri_prop <- Shigella_flexneri %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Shigella_flexneri)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Shigella_flexneri_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Shigella_flexneri_prop$sample_name_count)
+ # checking subject tax id 	
+#pathogen of interest
+#pathogen of interest
+
+ Shigella_sonnei <- nan_16s_combined_final2 %>%
+                          filter(Species== " Shigella sonnei") #0 hits
+
+ 
+ #16s:
+Shigella_16s <- nan_16s_combined_final2%>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Escherichia/Shigella") 
+
+
+
+```
+
+ Staphylococcus
+ 
+```{r}
+
+
+
+
+Staphylococcus <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Staphylococcus") #195hits
+
+Staphylococcus_prop <- Staphylococcus %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Staphylococcus)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Staphylococcus_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Staphylococcus_prop$sample_name_count)
+ # checking subject tax id 	
+#pathogen of interest
+#pathogen of interest
+
+#16s
+
+Staphylococcus_16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus== "Staphylococcus")
+
+
+```
+ 
+Streptococcus
+```{r}
+
+
+
+
+Streptococcus <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Streptococcus") #43 hits
+
+Streptococcus_prop <- Streptococcus %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Streptococcus)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Streptococcus_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Streptococcus_prop$sample_name_count)
+ # checking subject tax id 	
+#pathogen of interest
+#pathogen of interest
+
+
+ #16s:
+Streptococcus_16s <- nan_16s_combined_final2%>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Streptococcus") 
+
+Streptococcus_16s_prop <- Streptococcus_16s %>%
+                    group_by(sample_name) %>%
+                     summarise(total_count = sum(count, na.rm = TRUE), .groups = "drop") %>%
+                    filter(total_count != 0) #0 hits
+
+
+```
+ 
+ Toxoplasma gondii
+ 
+```{r}
+
+
+
+
+Toxoplasma<- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Toxoplasma") #0 hits
+
+#pathogen of interest
+
+Toxoplasma_gondii<- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Species== "Toxoplasma gondii") #0 hits
+
+#16s
+
+Toxoplasma_16s<- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus== "Toxoplasma") #0 hits
+
+#pathogen of interest
+
+Toxoplasma_gondii_16s<- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Species== "Toxoplasma gondii") #0 hits
+
+
+```
+
+Trichinella
+
+```{r}
+
+
+
+
+Trichinella <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Trichinella") #0 hits
+
+
+#16s
+Trichinella_16s <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus== "Trichinella") #0 hits
+
+
+
+```
+
+Vibrio
+```{r}
+
+
+Vibrio <- nan_16s_combined_final2 %>%
+  filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Vibrio") #204 hits
+Vibrio_prop <- Vibrio %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Vibrio)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Vibrio_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Vibrio_prop$sample_name_count)
+ # checking subject tax id 	
+#pathogen of interest
+#pathogen of interest
+
+Vibrio_16s <- nan_16s_combined_final2%>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Vibrio") 
+
+Vibrio_16s_prop <- Vibrio_16s %>%
+                    group_by(sample_name) %>%
+                     summarise(total_count = sum(count, na.rm = TRUE), .groups = "drop") %>%
+                    filter(total_count != 0) #0 hits
+
+
+
+
+```
+
+Yersinia
+
+```{r}
+
+
+Yersinia <- nan_16s_combined_final2 %>%
+    filter(sequencing == "Nanopore") %>%
+                          filter(Genus== "Yersinia") #4823 hits
+
+Yersinia_prop <- Yersinia %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+
+##yersinia spp prop only:
+
+Yersinia_spp_prop <- Yersinia %>%
+                    group_by(Species) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Yersinia)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Yersinia_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Yersinia_prop$sample_name_count)
+ # checking subject tax id 	
+
+
+
+
+
+#pathogen of interest - Yersinia enterocolitica in one health report
+
+Yersinia_enterocolitica <- nan_16s_combined_final2 %>%
+                          filter(Species== "Yersinia enterocolitica") # hits
+Yersinia_enterocolitica_prop <- Yersinia_enterocolitica %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Yersinia_enterocolitica)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Yersinia_enterocolitica_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Yersinia_enterocolitica_prop$sample_name_count)
+ # checking subject tax id 	
+#pathogen of interest
+
+
+
+#pathogen of interest #2 in one health report
+
+
+#Yersinia pseudotuberculosis
+
+
+Yersinia_pseudotuberculosis <- nan_16s_combined_final2 %>%
+                          filter(Species== "Yersinia pseudotuberculosis") # hits
+Yersinia_pseudotuberculosis_prop <- Yersinia_pseudotuberculosis %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Yersinia_pseudotuberculosis)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Yersinia_pseudotuberculosis_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Yersinia_pseudotuberculosis_prop$sample_name_count)
+ # checking subject tax id 	
+#pathogen of interest
+
+
+
+
+#pathogen of interest - not actually listed in any of the resources im using, but it is a major pathogen
+Yersinia_pestis <- nan_16s_combined_final2 %>%
+                          filter(Species== "Yersinia pestis") #1 hits
+Yersinia_pestis_prop <- Yersinia_pestis %>%
+                    group_by(sample_name, Genus) %>%
+                     summarise(sample_name_count = n()) %>%
+                      ungroup()
+#get the tootal number of hits in the entire dataset
+
+nrow(Yersinia_pestis)
+#GET THE NUMBER OF SAMPLES WITH HITS
+
+nrow(Yersinia_pestis_prop)
+#GET THE MEDIAN AND ci (first and 3rd quarter)
+
+summary(Yersinia_pestis_prop$sample_name_count)
+ # checking subject tax id 	
+#pathogen of interest
+#pathogen of interest
+
+
+Yersinia_16s <- nan_16s_combined_final2%>%
+  filter(sequencing == "Illumina") %>%
+                          filter(Genus == "Yersinia") 
+
+Yersinia_16s_prop <- Yersinia_16s %>%
+                    group_by(sample_name) %>%
+                     summarise(total_count = sum(count, na.rm = TRUE), .groups = "drop") %>%
+                    filter(total_count != 0) #0 hits
+
+
+
+```
+

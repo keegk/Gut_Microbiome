@@ -1,0 +1,155 @@
+---
+title: "Genera comparisons of Illumina Miseq and Nanopore"
+output: html_notebook
+---
+
+
+```{r setup}
+library(tidyverse)
+library(stringr)
+library("RColorBrewer") 
+library("ggplot2")
+```
+
+Step 1: Load in the combined dataset counts of 16s and nanopore
+
+```{r}
+load("nan_16s_combined_final2")
+
+```
+
+Step 2: filter the dataset to pull out the top 30 genera present in both sequencing methods. The reason I am reducing the dataset down to the top 30 in each sequencing method is purely so that the figure generated is relatively manageable - and is not containing 100s if not 1000's of genera, which would be too difficult to view. We may have to trim down from 30 genera once weve looked at the figure
+
+```{r}
+
+
+top_shared_genera <- nan_16s_combined_final2 %>%
+                  filter(count > 0) %>% 
+                  filter(!sample_name %in% c("Neg-ctrl-just-water", "neg-ctrl-maggatract1", "HMW-positive-control", "GG75", "GG81", "GG83", "GG86","GG96","GG141","GG143","GG147","GG153","GG158","GG166","GG168","GG169","GG180","GG100","GG111", "BG04","CG04","CG08","FCG04","CG13","CG18","WG04","WG13","FA2","FE1", "FB16_2", "FC2_2")) %>% #removing all controls (i had already removed nanopore controls earlier so just needed to remove illumina controls. Also removed samples not sequenced in both nanopore and illumina - these samples were only seq on nanopore). 
+group_by(Genus, sequencing) %>%
+ summarise(n_samples = n_distinct(sample_name),
+           total_counts = sum(count), .groups = "drop") %>% #sum up the number of counts per genus per sequencing method
+ group_by(Genus) %>%
+  filter(n_samples >= 10) %>%
+  mutate(n_seq = n_distinct(sequencing)) %>%
+ filter(n_seq == 2) %>% 
+  # keep only genera present in both methods, specifying their are 2 sequencing methods
+ #summarise(overall_count = sum(total_counts), .groups = "drop") %>% #now get the total number of counts in the dataframe (all samples and sequencing methods)
+ #slice_max(overall_count, n = 30) %>% #return the top genera that have the most counts (not that we have asked for a total of genera that are shared between both sequencing methods, so these top 30 are the highest ranking genera seen in both methods)
+ pull(Genus) #extract the names of these 30 genera into a final dataframe
+
+# Filter original data to keep only those top 30 shared genera
+final_shared_genera <- nan_16s_combined_final2 %>%
+  filter(count > 0) %>% 
+  filter(!sample_name %in% c("Neg-ctrl-just-water", "neg-ctrl-maggatract1", "HMW-positive-control", "GG75", "GG81", "GG83", "GG86","GG96","GG141","GG143","GG147","GG153","GG158","GG166","GG168","GG169","GG180","GG100","GG111", "BG04","CG04","CG08","FCG04","CG13","CG18","WG04","WG13","FA2","FE1", "FB16_2", "FC2_2")) %>% #removing all controls (i had already removed nanopore controls earlier so just needed to remove illumina controls. Also removed samples not sequenced in both nanopore and illumina - these samples were only seq on nanopore).
+ filter(Genus %in% unique(top_shared_genera)) #filter my original full dataset by the top 30 genera (in terms of max number of counts) that are shared in both 
+
+```
+
+
+Step 3:
+choosing which genus to use for ratios (needs to be a genus that is present in every sample across both sequencing methods):
+
+```{r}
+#how many unique 
+prestep_genus <- final_shared_genera %>%
+            filter(count > 0) %>% 
+           filter(!sample_name %in% c("Neg-ctrl-just-water", "neg-ctrl-maggatract1", "HMW-positive-control", "GG75", "GG81", "GG83", "GG86","GG96","GG141","GG143","GG147","GG153","GG158","GG166","GG168","GG169","GG180","GG100","GG111", "BG04","CG04","CG08","FCG04","CG13","CG18","WG04","WG13","FA2","FE1", "FB16_2", "FC2_2")) %>% #removing all controls (i had already removed nanopore controls earlier so just needed to remove illumina controls. Also removed samples not sequenced in both nanopore and illumina - these samples were only seq on nanopore). we used this filtering step in the code above, to make sure we wernt retaining genera based on samples we wont be analysing (that were not sequenced acorss both methods), but we also need to add it here as the main dataset was only filtered by the top 30 genera, not by samples when we merged the original dataset with the 30 chosen genera dataset
+            group_by(sample_name, sequencing) %>%
+           summarise(non_zero_genera = unique(Genus)) %>%
+            ungroup() %>%
+            group_by(non_zero_genera) %>%
+          #  summarise(genus_count = count(non_zero_genera)) %>%
+            nest() %>%
+            mutate(num_samples = map_int(data, nrow))
+
+#THERE WERE 42 samples seq on both nanopore and 16s, so there needs to be a total of 84 counts per genus(42 per sequencing method) to show that a genus is present in every sample and can be used for ratios
+
+
+
+
+# Define samples to exclude
+excluded_samples <- c(
+ "Neg-ctrl-just-water", "neg-ctrl-maggatract1", "HMW-positive-control",
+ "GG75", "GG81", "GG83", "GG86", "GG96", "GG141", "GG143", "GG147",
+ "GG153", "GG158", "GG166", "GG168", "GG169", "GG180", "GG100", "GG111",
+ "BG04", "CG04", "CG08", "FCG04", "CG13", "CG18", "WG04", "WG13",
+ "FA2", "FE1", "FB16_2", "FC2_2"
+)
+
+# Step-by-step transformation
+prestep_genus2 <- final_shared_genera %>%
+ filter(count > 0) %>%
+ filter(!sample_name %in% excluded_samples) %>%
+ group_by(sample_name, sequencing, Genus) %>%
+ summarise(total_count = sum(count), .groups = "drop") %>%
+ group_by(Genus) %>%
+ filter(n_distinct(sequencing) == 2) %>% # Ensure genus is present in both methods
+ ungroup() %>%
+ group_by(Genus, sample_name, sequencing) %>%
+ summarise(count = sum(total_count), .groups = "drop") %>%
+ group_by(Genus) %>%
+ nest() %>%
+ mutate(num_samples = map_int(data, ~ n_distinct(.x$sample_name)))
+
+
+
+
+```
+
+Plotting based on the genus pseudomonoas:
+
+```{r}
+# Step 1: Get Proteobacteria counts per sample and method
+agg <- final_shared_genera  %>%
+ # filter(Phylum == "Pseudomonadota") %>%
+  group_by(Genus, location, sample_name, sequencing) %>% #here we want to get all phyla from both orkney and iceland proportional to the phyla pseduomonadota
+  summarise(total_count = sum(count), .groups = "drop") 
+  
+ratio_pseudo <- agg %>%
+                filter(Genus == "Pseudomonas") %>%
+                select (-Genus) %>%
+                rename (pseudo_count = total_count) 
+   
+                
+agg2 <- agg %>%
+  left_join(ratio_pseudo, by = c("location", "sample_name", "sequencing")) %>%
+    mutate(ratio = total_count / pseudo_count ,
+           log_ratio = log10(ratio)) %>%
+  group_by(Genus, location, sequencing) %>%
+ # mutate(log_ratio = ifelse(is.finite(log_ratio), log_ratio, -10))  %>%
+  filter(is.finite(log_ratio)) %>%
+  filter(log_ratio!= 0) %>%
+  summarise(mean_log_ratio = mean(log_ratio), 
+            sd_log_ratio = sd(log_ratio), 
+            ymin = mean_log_ratio - sd_log_ratio,
+            ymax = mean_log_ratio + sd_log_ratio) %>%
+   ungroup() 
+
+
+
+```
+
+Plot:
+
+```{r fig.width = 12. fig.height = 14}
+agg2 %>%
+                    
+  # filter(!is.na(location)) %>%
+  filter(!location == "NA") %>% #this version of filtering out ANY "NA" LOCATION seems to work rather than the one on the previous line
+ggplot(aes(x = Genus, y = mean_log_ratio, colour  = sequencing)) +
+geom_point () +
+   geom_errorbar(
+     aes(ymin = ymin, ymax = ymax)) +
+ labs(
+ x = "Genus",
+ y = "Log10(Ratio to Pseudomonas)",
+ title = "Log Ratios of Genera Counts Relative to Pseudomonas"
+ ) +
+ theme_minimal() +
+theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~location, ncol = 1)
+
+
+
+```
