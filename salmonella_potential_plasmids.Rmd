@@ -1,0 +1,48 @@
+---
+title: "Combining all data (6 runs) for Chapter 4 analysis"
+output: html_notebook
+---
+
+```{r}
+load("cvn1_stringent_2025_clean4") #only barcodes 2,5  and 8 from this run
+load("cvn2_stringent_2025_clean4")#only barcodes barcode3","barcode4","barcode5","barcode6","barcode7","barcode8","barcode9","barcode22" kept
+load("cvn3_stringent_2025_clean4") #only barcodes "barcode1","barcode2","barcode10" kept
+load("stringent_2025_gm1")
+load("stringent_2025_gm2")
+load("stringent_2025_gm4") #only barcodes 5-20 kept from gm3 run
+
+merged_all_runs <- bind_rows(cvn1_stringent_2025_clean4,cvn2_stringent_2025_clean4,cvn3_stringent_2025_clean4,stringent_2025_gm1,stringent_2025_gm2,stringent_2025_gm4)
+
+save(merged_all_runs, file = "merged_all_runs") #saving the file for quick reloading later on
+
+load("merged_all_runs")
+
+
+
+```
+
+How many reads per sample after filtering through Nanopore pipeline:
+
+```{r}
+load("merged_all_runs")
+
+read_count_per_sample <- merged_all_runs %>%
+                        group_by(sample_name) %>%
+                        summarise(count = n())
+
+```
+
+```{r}
+#salmonella plasmids
+
+
+sal_plasmids <- merged_all_runs %>%
+                        filter(str_detect(species.x, "Salmonella"))%>%
+
+                        filter(subject.length <= 5000) %>%
+                        distinct(subject.acc)
+
+
+```
+
+
