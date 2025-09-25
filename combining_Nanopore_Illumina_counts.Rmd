@@ -1,0 +1,225 @@
+---
+title: "Combining the Nanopore and 16S counts"
+output: html_notebook
+---
+
+
+
+```{r setup}
+library(tidyverse)
+library(stringr)
+library("RColorBrewer") 
+library("ggplot2")
+```
+
+lOADING IN THE 16S TAXA TABLE AND ASVCOUNTS TABLE:
+
+```{r}
+asv_16S <- read.delim("ASV_Table_16S_June2025.txt")
+
+taxa_16S <- read.delim("ASV_Taxa_16S_June2025.txt")
+
+#TRANSPOSE THE asv table:
+
+#asv_16S_rn <- asv_16S  %>%
+            #rownames_to_column()
+
+#colnames(asv_16S_rn)[1] <-  "sample_name" 
+
+asv_16S_t <- t(asv_16S)
+
+#make it a datfarme:
+
+asv_16S_t <- as.data.frame(asv_16S_t)
+
+#give the first column a name (asv):
+
+asv_16S_df <- asv_16S_t %>%
+                rownames_to_column() #TURNS THE row that has asv sequences into a column 
+              
+colnames(asv_16S_df)[1] <-  "ASV" #convert the name of this new row to ASV
+
+##removed contaminated reads from asv table:
+
+#for microdecon, i need to put the first two negative control "blanks" right after the asv column:
+
+
+# Identify the ASV column
+asv_col <- asv_16S_df[, 1, drop = FALSE]
+
+# Move the blanks to the front (after ASV column)
+blanks <- asv_16S_df[, c("Neg-ctrl-just-water", "neg-ctrl-maggatract1")]
+
+# Get the rest of the sample columns excluding the blanks
+other_samples <- asv_16S_df[, !(names(asv_16S_df) %in% c("Neg-ctrl-just-water", "neg-ctrl-maggatract1", names(asv_col)))]
+
+# Combine into new dataframe
+asv_df_reordered <- cbind(asv_col, blanks, other_samples)
+
+
+#colnames(asv_df_reordered)[1] <- "OTU_ID" # i need to specifically change the first column from asv to otu or else micridecon wont recognise it
+
+
+##run microdecon
+library(microDecon)
+decontaminated <- decon(asv_df_reordered, numb.blanks = 2, numb.ind = 43, taxa = F)
+
+
+#EXTRACT THE FINAL DECONTAMINATED ASV DATAFRAME
+
+decontaminated_16s_asv <- decontaminated$decon.table
+
+save(decontaminated_16s_asv, file = "decontaminated_16s_asv") #saving the file for quick reloading later on
+load("decontaminated_16s_asv")
+
+#convert the row name of taxa into a column too and also call it asv:
+
+taxa_16S_df <- taxa_16S %>%
+                rownames_to_column() #TURNS THE row that has asv sequences into a column 
+              
+colnames(taxa_16S_df)[1] <-  "ASV" #convert the name of this new row to ASV
+
+
+
+#merge both tables based on asv column (column 1)
+
+taxa_counts_16s <- full_join (taxa_16S_df, decontaminated_16s_asv, by = "ASV")
+
+save(taxa_counts_16s, file = "taxa_counts_16s") #saving the file for quick reloading later on
+load("taxa_counts_16s")
+
+
+```
+
+Keeping the whole dataset together, lets change the layout of the 16s table so that there is one column for samples and lets also add a "sequencing" column, illustrating these are illumina 16s sequences. Lets also add a location column, orkney and iceland and a time column
+
+```{r}
+#first need to remove the mean.blank column from taxa_counts_16s (average abundance of each OTU/ASV across the blank (negative control) samples.)
+
+taxa_counts_16s <- taxa_counts_16s %>%
+                    select(-Mean.blank)
+
+taxa_counts_16s_modified <- taxa_counts_16s %>%
+pivot_longer( #using pivot longer so the table layout matches nanopore dataframe for later merging
+ cols = 9:51,
+ names_to = "sample_name",
+values_to = "count"
+) %>%
+  mutate(sequencing = "Illumina") 
+  
+# Define your sample location groups
+orkney_samples <- c("A05", "B04","D20","E16","FB1","FB16","FB2","FC2","FD4","FE08","H04","BG01","BG05", "FB15", "BG17", "BG20","CG1","WG01", "WG02", "WG03", "WG06", "WG07", "WG08", "WG11", "WG14", "WG16", "WG18", "WG19", "WG25") # replace with actual sample names
+iceland_samples <- c("GG104", "GG107", "GG118", "GG119", "GG74", "GG77","GG82", "GG87", "GG94", "GG99","GG149", "GG161", "GG174") # replace with actual sample names
+
+# Add the location column
+ taxa_counts_16s_modified <- taxa_counts_16s_modified %>%
+   mutate(location = case_when(
+ sample_name %in% orkney_samples ~ "Orkney",
+ sample_name %in% iceland_samples ~ "Iceland",
+ TRUE ~ NA_character_ # optional: assigns NA if sample name doesn't match
+ ))
+
+# Define your sample timegroups
+orkney_samples_nov22 <- c("A05", "B04","D20","E16","FB1","FB16","FB2","FC2","FD4","FE08","H04")
+
+orkney_samples_apr23 <- c("BG01", "BG05", "FB15", "BG17", "BG20","CG1")
+
+orkney_samples_jun23 <- c("WG01", "WG02", "WG03", "WG06", "WG07", "WG08", "WG11", "WG14", "WG16", "WG18", "WG19", "WG25")
+
+
+iceland_samples_may23 <- c("GG104", "GG107", "GG118", "GG119", "GG74", "GG77","GG82", "GG87", "GG94", "GG99")
+
+iceland_samples_aug23 <- c("GG149", "GG161", "GG174")
+
+
+# Add the timecolumn
+ taxa_counts_16s_modified <- taxa_counts_16s_modified %>%
+   mutate(time = case_when(
+ sample_name %in% orkney_samples_nov22  ~ "November_2022",
+ sample_name %in% orkney_samples_apr23  ~ "April_2023",
+  sample_name %in% orkney_samples_jun23  ~ "June_2023",
+ sample_name %in% iceland_samples_may23  ~ "May_2023",
+ sample_name %in% iceland_samples_aug23  ~ "August_2023",
+ TRUE ~ NA_character_ # optional: assigns NA if sample name doesn't match
+ )) 
+ 
+ 
+  taxa_counts_16s_modified  <- taxa_counts_16s_modified %>%
+                                mutate(Phylum = recode(Phylum,
+                                  "Proteobacteria" = "Pseudomonadota",
+                                "Firmicutes" ="Bacillota" ,
+                               "Actinobacteriota" = "Actinomycetota")) %>%
+                                select (Phylum,Genus, Species,sequencing, sample_name, location,time, count)
+
+ save(taxa_counts_16s_modified, file = "taxa_counts_16s_modified") #saving the file for quick reloading later on
+load("taxa_counts_16s_modified") 
+```
+
+
+Add in Nanopore data
+
+```{r}
+
+load("merged_all_runs") ##now with bacteria present in less than 0.5% of the sample removed
+
+
+nanopore_counts <- merged_all_runs %>%
+mutate(superkingdom2 = paste0(superkingdom, domain)) %>% #need to make a column with superkingdom info because we have either superkingdom or domain depending on the run and we need to have all this info in one column
+                        filter(str_detect(superkingdom2, "Bacteria")) %>% #then we filter to reain just the superkingdom/domian bacteri, to compare it to the 16s data that only has bacteria
+                        select(query.acc, phylum,order,family,genus,species.x, sample_name,time,location) %>%
+    mutate(sequencing = "Nanopore") 
+                       
+#name changing phyla to match old 16s names
+
+#new -> old
+# 	Pseudomonadota->	Proteobacteria
+#Bacillota -> 	Firmicutes
+# 	Actinomycetota-> Actinobacteriota
+#Thermodesulfobacteriota -> Desulfobacterota
+
+
+#Campylobacterota -> Campylobacterota #i dont know if this is a name change, i think the 16s just spelt it with an i? i would be dubious about including this as campylobacter genus has moved to proteobacteria phylum
+
+nanopore_counts$Phylum <- nanopore_counts$phylum
+  nanopore_counts$Genus <- nanopore_counts$genus                               
+nanopore_counts$Species <- nanopore_counts$species.x #getting these to match 16s dataframe columns
+
+
+
+##add counts column to nanopore data:
+
+nanopore_counts2 <- nanopore_counts %>%
+  
+ 
+  group_by(sample_name,  Species) %>%
+                       summarise(count = n()) %>%
+   mutate(prop =prop.table(count)) %>%
+  ungroup() 
+ 
+
+#now to this new dataframe, which has removed bacterial reads if they are present in less than 0.5% of a sample, we need to add back in phyla, genus, sequencing, location, time
+
+
+nanopore_counts3 <- left_join(nanopore_counts2, nanopore_counts)
+                    
+#remove spurious columns: phylum, genus, species.x, family,order, query.acc
+
+
+nanopore_counts4 <- nanopore_counts3 %>%
+                    select (c(Phylum, Genus,Species,sequencing,sample_name,location,time,count,prop))
+
+#MERGE THE 16S AND NANOPORE DATA
+
+
+nan_16s_combined_final <- bind_rows(nanopore_counts4,  taxa_counts_16s_modified)
+
+nan_16s_combined_final2 <- nan_16s_combined_final %>%
+                            
+                            group_by("Phylum", "Genus","Species","sequencing","sample_name","location","time","count","prop") %>%
+
+  distinct(sample_name, Genus, Species, .keep_all = TRUE) #need to remove duplicates of bacterial species for the same sample - because we merged the original  nanopore counts dataframe which hadnt summarised bacterial counts per sample, so the same bacteria had multiple rows for a given sample. if we had kept this dataframe like that it would have inflated actual counts of bacteria
+
+
+save(nan_16s_combined_final2, file = "nan_16s_combined_final2")
+load("nan_16s_combined_final2") #so this now contains all the Nanopore counts (filtered to remove bacteria present in less than 0.5% of the sample) and illumina data, with decontaminated reads 
+```
